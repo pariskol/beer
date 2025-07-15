@@ -72,5 +72,5 @@ This is where the main capabilities live:
 - staticFiles() — serve static files from your classpath.
 - start() — start the Jetty server.
 
-## Inspiration
+## 💡 Inspiration
 Beer is inspired by the simplicity of Spark and Express — but built directly on top of Jetty and Servlets to give you control, clarity, and lightweight performance with minimal setup.
