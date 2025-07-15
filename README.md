@@ -32,8 +32,8 @@ public class App {
                 .setIp("0.0.0.0")
                 .setPort(8080)
                 .setJettyMinThreads(4)
-				.setJettyMaxThreads(32)
-				.setJettyIdleTimeout(60000);
+                .setJettyMaxThreads(32)
+                .setJettyIdleTimeout(60000);
                 // .setKeystorePath("path/to/keystore"); // For HTTPS
                 // .setKeystorePass("yourPassword");
 
