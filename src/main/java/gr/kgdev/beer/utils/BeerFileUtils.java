@@ -24,13 +24,12 @@ import jakarta.servlet.http.Part;
 
 public class BeerFileUtils {
 
-	private static String uploadLocation = PropertiesLoader.getProperty("upload.directory", String.class, "./");
 	private static Integer maxFileSize = 100000000;
 	private static Integer maxReqSize = 101000000;
 	private static Integer fileSizeThreshold = 1;
 	
 	// Test : curl -i -X POST -H 'Content-Type: multipart/form-data' -H 'Authorization: Basic YWRtaW46dGVzdA==' -F "file=@test.txt" 192.168.2.5:8080/api/action/upload?messageId=8
-	public static SimpleMessage uploadFile(HttpServletRequest req, HttpServletResponse res, String partName) throws SQLException, BadRequestException, SparkCoreGeneralException {
+	public static SimpleMessage uploadFile(HttpServletRequest req, HttpServletResponse res, String partName, String uploadLocation) throws SQLException, BadRequestException, SparkCoreGeneralException {
 
 		try {
 			var logger = LoggerFactory.getLogger("spark");
@@ -71,10 +70,29 @@ public class BeerFileUtils {
 		}
 	}
 	
-	public static SimpleMessage uploadFile(HttpServletRequest req, HttpServletResponse res) throws SQLException, BadRequestException, SparkCoreGeneralException {
-		return uploadFile(req, res, "file");
+	public static String downloadFile(HttpServletRequest req, HttpServletResponse res, String uploadLocation, String path, Boolean isInline) throws Exception {
+	    return downloadFile(res, new File(uploadLocation + "/" + path), isInline);
 	}
-	
+
+	public static SimpleMessage deleteFile(HttpServletRequest req, HttpServletResponse res, String uploadLocation, String path) throws Exception {
+	    var file = new File(uploadLocation + "/" + path);
+	    file.delete();
+	    
+	    return new SimpleMessage("");
+	}
+
+	public static List<String> listFiles(String uploadLocation) throws IOException {
+		var dir = uploadLocation;
+	    try (var stream = Files.list(Paths.get(dir))){
+	        return stream
+	          .filter(file -> !Files.isDirectory(file))
+	          .map(Path::toFile)
+	          .sorted(Comparator.comparingLong(File::lastModified))
+	          .map(File::getName)
+	          .toList();
+	    }
+	}
+
 	private static String getRequestFileName(HttpServletRequest req, String partName) throws SparkCoreGeneralException {
 		try {
 			return req.getPart(partName).getSubmittedFileName().replaceAll(" ","");
@@ -103,51 +121,6 @@ public class BeerFileUtils {
         }
         
         return "";
-	}
-	
-	public static String downloadFile(HttpServletRequest req, HttpServletResponse res, String path, Boolean isInline) throws Exception {
-	    return downloadFile(res, new File(uploadLocation + "/" + path), isInline);
-	}
-	
-	public static String downloadFile(HttpServletRequest req, HttpServletResponse res) throws Exception {
-		var path = req.getParameter("file");
-	    return downloadFile(res, new File(uploadLocation + "/" + path), false);
-	}
-	
-	public static SimpleMessage deleteFile(HttpServletRequest req, HttpServletResponse res, String path) throws Exception {
-	    var file = new File(uploadLocation + "/" + path);
-	    file.delete();
-	    
-	    return new SimpleMessage("");
-	}
-	
-	public static SimpleMessage deleteFile(HttpServletRequest req, HttpServletResponse res) throws Exception {
-		var path = req.getParameter("file");
-		return deleteFile(req, res, path);
-	}
-	
-	public static List<String> listFiles() throws IOException {
-		var dir = uploadLocation;
-	    try (var stream = Files.list(Paths.get(dir))){
-	        return stream
-	          .filter(file -> !Files.isDirectory(file))
-	          .map(Path::toFile)
-	          .sorted(Comparator.comparingLong(File::lastModified))
-	          .map(File::getName)
-	          .toList();
-	    }
-	}
-	
-	public static List<String> listFiles(String folder) throws IOException {
-		var dir = uploadLocation + "/" + folder;
-	    try (var stream = Files.list(Paths.get(dir))){
-	        return stream
-	          .filter(file -> !Files.isDirectory(file))
-	          .map(Path::toFile)
-	          .sorted(Comparator.comparingLong(File::lastModified))
-	          .map(File::getName)
-	          .toList();
-	    }
 	}
 
 }
