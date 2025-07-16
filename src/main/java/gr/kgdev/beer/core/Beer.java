@@ -18,6 +18,7 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import gr.kgdev.beer.model.SimpleErrorMessage;
@@ -45,6 +46,7 @@ public class Beer {
 	private HandlerList handlers = new HandlerList();
 	private BeerConfig config;
 	private String staticFilePath;
+	private Logger logger = LoggerFactory.getLogger(Beer.class);
 
 	public void init(BeerConfig config) {
 		var threadPool = new QueuedThreadPool(config.getJettyMaxThreads(), config.getJettyMinThreads(),
@@ -54,6 +56,10 @@ public class Beer {
 		this.server = new Server(threadPool);
 
 		ServerConnector connector;
+		
+		if (config.getLoggerName() != null) {
+			logger = LoggerFactory.getLogger(config.getLoggerName());
+		}
 		
 		// if keystore is set, only https will be available
 		if (config.getKeystorePath() != null) {
@@ -147,11 +153,6 @@ public class Beer {
 		var isWildcard = path.endsWith("*");
 
 		var targetRoutes = isWildcard ? wildcardRoutes : routes;
-
-		if (!targetRoutes.containsKey(path)) {
-			
-		}
-		
 		targetRoutes.computeIfAbsent(path, newPath -> {
 			var servlet = createServlet();
 			context.addServlet(new ServletHolder(servlet), path);
@@ -246,9 +247,9 @@ public class Beer {
 		}
 		
 		if (res.getStatus() == 500) {
-			LoggerFactory.getLogger("spark").error(req.getMethod() + " " + req.getRequestURI(), ex);
+			logger.error(req.getMethod() + " " + req.getRequestURI(), ex);
 		} else {
-			LoggerFactory.getLogger("spark").error(req.getMethod() + " " + req.getRequestURI() + " " + ex.getMessage());
+			logger.error(req.getMethod() + " " + req.getRequestURI() + " " + ex.getMessage());
 		}
 	}
 
@@ -277,7 +278,7 @@ public class Beer {
 
 	public void loggingFilter() {
 		filter("/*", (req, res) -> {
-			LoggerFactory.getLogger("spark").info("[LOG] " + req.getMethod() + " " + req.getRequestURI());
+			logger.info("[LOG] " + req.getMethod() + " " + req.getRequestURI());
 		});
 	}
 
@@ -288,7 +289,7 @@ public class Beer {
 		
 		server.setHandler(handlers);
 		server.start();
-		LoggerFactory.getLogger("spark").info("Server started on http://" + config.getIp() + ":" + config.getPort());
+		logger.info("Server started on http://" + config.getIp() + ":" + config.getPort());
 		server.join();
 	}
 

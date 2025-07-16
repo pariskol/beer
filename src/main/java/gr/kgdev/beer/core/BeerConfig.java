@@ -9,6 +9,7 @@ public class BeerConfig {
 	private Integer jettyIdleTimeout;
 	private String keystorePath;
 	private String keystorePass;
+	private String loggerName;
 
 	public String getIp() {
 		return ip;
@@ -72,7 +73,14 @@ public class BeerConfig {
 		this.keystorePass = keystorePass;
 		return this;
 	}
-	
-	
+
+	public String getLoggerName() {
+		return loggerName;
+	}
+
+	public BeerConfig setLoggerName(String loggerName) {
+		this.loggerName = loggerName;
+		return this;
+	}
 
 }
