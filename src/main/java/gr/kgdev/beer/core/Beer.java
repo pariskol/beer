@@ -88,6 +88,55 @@ public class Beer {
 		return server;
 	}
 
+	private HttpServlet createServlet() {
+		@SuppressWarnings("serial")
+		var servlet = new HttpServlet() {
+			@Override
+			protected void service(HttpServletRequest req, HttpServletResponse res)
+					throws ServletException, IOException {
+				var httpMethod = req.getMethod().toUpperCase();
+				res.setContentType("application/json");
+	
+				var requestURI = req.getRequestURI();
+	
+				// 1. Try exact match
+				var methodHandlers = routes.get(requestURI);
+	
+				// 2. If no exact match, try wildcard match
+				if (methodHandlers == null) {
+					for (var entry : wildcardRoutes.entrySet()) {
+						var wildcardPath = entry.getKey().substring(0, entry.getKey().length() - 1);
+						if (requestURI.startsWith(wildcardPath)) {
+							methodHandlers = entry.getValue();
+							break;
+						}
+					}
+				}
+	
+				if (methodHandlers != null) {
+					var registeredHandler = methodHandlers.get(httpMethod);
+					if (registeredHandler != null) {
+						try {
+							var result = registeredHandler.handle(req, res);
+							res.setStatus(200);
+							res.getWriter().write(BeerUtils.json(result));
+							return;
+						} catch (Throwable e) {
+							throw new ServletException(e);
+						}
+					}
+					res.setStatus(405);
+					res.getWriter().write(BeerUtils.json(new SimpleMessage("Method Not Allowed")));
+					return;
+				}
+	
+				res.setStatus(404);
+				res.getWriter().write(BeerUtils.json(new SimpleMessage("Not Found")));
+			}
+		};
+		return servlet;
+	}
+
 	private void add(String method, String path, RequestHandler handler) {
 		method = method.toUpperCase();
 
@@ -95,58 +144,16 @@ public class Beer {
 			throw new IllegalStateException("Path '" + path + "' is already occupied for serving files");
 		}
 
-		boolean isWildcard = path.endsWith("*");
+		var isWildcard = path.endsWith("*");
 
-		Map<String, Map<String, RequestHandler>> targetRoutes = isWildcard ? wildcardRoutes : routes;
+		var targetRoutes = isWildcard ? wildcardRoutes : routes;
 
+		if (!targetRoutes.containsKey(path)) {
+			
+		}
+		
 		targetRoutes.computeIfAbsent(path, newPath -> {
-			@SuppressWarnings("serial")
-			var servlet = new HttpServlet() {
-				@Override
-				protected void service(HttpServletRequest req, HttpServletResponse res)
-						throws ServletException, IOException {
-					var httpMethod = req.getMethod().toUpperCase();
-					res.setContentType("application/json");
-
-					String requestURI = req.getRequestURI();
-					System.out.println(requestURI);
-
-					// 1. Try exact match
-					var methodHandlers = routes.get(requestURI);
-
-					// 2. If no exact match, try wildcard match
-					if (methodHandlers == null) {
-						for (var entry : wildcardRoutes.entrySet()) {
-							String wildcardPath = entry.getKey().substring(0, entry.getKey().length() - 1);
-							if (requestURI.startsWith(wildcardPath)) {
-								methodHandlers = entry.getValue();
-								break;
-							}
-						}
-					}
-
-					if (methodHandlers != null) {
-						var registeredHandler = methodHandlers.get(httpMethod);
-						if (registeredHandler != null) {
-							try {
-								var result = registeredHandler.handle(req, res);
-								res.setStatus(200);
-								res.getWriter().write(BeerUtils.json(result));
-								return;
-							} catch (Throwable e) {
-								throw new ServletException(e);
-							}
-						}
-						res.setStatus(405);
-						res.getWriter().write(BeerUtils.json(new SimpleMessage("Method Not Allowed")));
-						return;
-					}
-
-					res.setStatus(404);
-					res.getWriter().write(BeerUtils.json(new SimpleMessage("Not Found")));
-				}
-			};
-
+			var servlet = createServlet();
 			context.addServlet(new ServletHolder(servlet), path);
 			return new HashMap<>();
 		}).put(method, handler);
