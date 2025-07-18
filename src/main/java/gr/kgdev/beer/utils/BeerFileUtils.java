@@ -4,6 +4,7 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -71,7 +72,7 @@ public class BeerFileUtils {
 	}
 	
 	public static String downloadFile(HttpServletRequest req, HttpServletResponse res, String uploadLocation, String path, Boolean isInline) throws Exception {
-	    return downloadFile(res, new File(uploadLocation + "/" + path), isInline);
+	    return downloadFile(res, new File(uploadLocation + "/" + URLDecoder.decode(path, "UTF-8")), isInline);
 	}
 
 	public static SimpleMessage deleteFile(HttpServletRequest req, HttpServletResponse res, String uploadLocation, String path) throws Exception {
@@ -95,7 +96,7 @@ public class BeerFileUtils {
 
 	private static String getRequestFileName(HttpServletRequest req, String partName) throws SparkCoreGeneralException {
 		try {
-			return req.getPart(partName).getSubmittedFileName().replaceAll(" ","");
+			return URLDecoder.decode(req.getPart(partName).getSubmittedFileName().replaceAll(" ",""), "UTF-8");
 		} catch(Exception e) {
 			throw new SparkCoreGeneralException("Could not get submitted filename", e);
 		}
