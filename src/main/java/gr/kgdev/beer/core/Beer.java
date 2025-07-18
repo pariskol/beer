@@ -268,12 +268,38 @@ public class Beer {
 	}
 
 	public void corsAllFilter() {
-		filter("/*", (req, res) -> {
-			res.setHeader("Access-Control-Allow-Origin", "*");
-			res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-			res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-			res.setStatus(200);
-		});
+		Filter servletFilter = new Filter() {
+			@Override
+			public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
+					throws ServletException, IOException {
+				try {
+					var httpRes = (HttpServletResponse) res;
+					httpRes.setHeader("Access-Control-Allow-Origin", "*");
+					httpRes.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+					httpRes.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+					
+					var httpReq = (HttpServletRequest) req;
+					if (httpReq.getMethod().equalsIgnoreCase("options")) {
+						httpRes.setStatus(200);
+						return;
+					}
+					
+					chain.doFilter(req, res);
+				} catch (Exception ex) {
+					throw new ServletException(ex);
+				}
+			}
+
+			@Override
+			public void init(FilterConfig filterConfig) {
+			}
+
+			@Override
+			public void destroy() {
+			}
+		};
+
+		context.addFilter(new FilterHolder(servletFilter), "/*", null);
 	}
 
 	public void loggingFilter() {
