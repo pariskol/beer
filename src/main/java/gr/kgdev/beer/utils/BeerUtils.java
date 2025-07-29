@@ -17,6 +17,7 @@ import com.google.gson.Gson;
 import gr.kgdev.beer.model.Credentials;
 import gr.kgdev.beer.model.exceptions.BadRequestException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 public class BeerUtils {
 
@@ -99,6 +100,11 @@ public class BeerUtils {
 
         return null;
     }
+	
+	public static <T> T redirect(HttpServletResponse res, String url) throws IOException {
+		res.sendRedirect(url);
+		return null;
+	}
 	
 	public static String json(Object object) {
 		if (object instanceof Collection<?>)
