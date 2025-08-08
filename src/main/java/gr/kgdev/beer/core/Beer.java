@@ -39,11 +39,13 @@ import jakarta.servlet.http.HttpServletResponse;
 
 public class Beer {
 
+	public static final String PATH_PREFIX = "path:";
 	private ServletContextHandler context;
 	private Server server;
 	private final Map<String, Map<String, RequestHandler>> routes = new HashMap<>();
 	private final Map<String, Map<String, RequestHandler>> wildcardRoutes = new HashMap<>();
-	private HandlerList handlers = new HandlerList();
+	private final Map<String, Map<String, RequestHandler>> pathParamRoutes = new HashMap<>();
+	private final HandlerList handlers = new HandlerList();
 	private BeerConfig config;
 	private String staticFilePath;
 	private Logger logger = LoggerFactory.getLogger(Beer.class);
@@ -103,22 +105,33 @@ public class Beer {
 				var httpMethod = req.getMethod().toUpperCase();
 				res.setContentType("application/json");
 	
-				var requestURI = req.getRequestURI();
+				var reqURI = req.getRequestURI();
 	
 				// 1. Try exact match
-				var methodHandlers = routes.get(requestURI);
+				var methodHandlers = routes.get(reqURI);
 	
 				// 2. If no exact match, try wildcard match
 				if (methodHandlers == null) {
 					for (var entry : wildcardRoutes.entrySet()) {
 						var wildcardPath = entry.getKey().substring(0, entry.getKey().length() - 1);
-						if (requestURI.startsWith(wildcardPath)) {
+						if (reqURI.startsWith(wildcardPath)) {
 							methodHandlers = entry.getValue();
 							break;
 						}
 					}
 				}
 	
+				// 3. If no wildcard match, try param match
+				if (methodHandlers == null) {
+				    for (var entry : pathParamRoutes.entrySet()) {
+				        String pattern = entry.getKey(); // e.g. "/api/files/:fileid"
+				        if (matchesParamPattern(pattern, reqURI)) {
+				        	setAttributesForPathParams(pattern, req);
+				            methodHandlers = entry.getValue();
+				            break;
+				        }
+				    }
+				}
 				if (methodHandlers != null) {
 					var registeredHandler = methodHandlers.get(httpMethod);
 					if (registeredHandler != null) {
@@ -131,6 +144,7 @@ public class Beer {
 							throw new ServletException(e);
 						}
 					}
+					
 					res.setStatus(405);
 					res.getWriter().write(BeerUtils.json(new SimpleMessage("Method Not Allowed")));
 					return;
@@ -143,22 +157,86 @@ public class Beer {
 		return servlet;
 	}
 
-	private void add(String method, String path, RequestHandler handler) {
-		method = method.toUpperCase();
+	private void setAttributesForPathParams(String pattern, HttpServletRequest req) {
+		var patternParts = pattern.split("/");
+		var uriParts = req.getRequestURI().split("/");
+		
+	    if (patternParts.length != uriParts.length) {
+	        // do not extract if mismatch
+	        return;
+	    }
+	    
+		for (var i = 0; i < patternParts.length; i++) {
+			if (patternParts[i].startsWith(":")) {
+				String paramName = patternParts[i].substring(1);
+				// store path param value in req
+				req.setAttribute(PATH_PREFIX + paramName, uriParts[i]);
+			}
+		}
+	}
+	
+	private boolean matchesParamPattern(String pattern, String uri) {
+		var patternParts = pattern.split("/");
+		var uriParts = uri.split("/");
 
-		if (staticFilePath.equals(path)) {
-			throw new IllegalStateException("Path '" + path + "' is already occupied for serving files");
+		if (patternParts.length != uriParts.length) {
+			return false;
 		}
 
-		var isWildcard = path.endsWith("*");
+		for (var i = 0; i < patternParts.length; i++) {
+			if (patternParts[i].startsWith(":")) {
+				continue; // matches anything
+			}
+			if (!patternParts[i].equals(uriParts[i])) {
+				return false;
+			}
+		}
 
-		var targetRoutes = isWildcard ? wildcardRoutes : routes;
-		targetRoutes.computeIfAbsent(path, newPath -> {
-			var servlet = createServlet();
-			context.addServlet(new ServletHolder(servlet), path);
-			return new HashMap<>();
-		}).put(method, handler);
+		return true;
 	}
+
+	private void add(String method, String path, RequestHandler handler) {
+	    method = method.toUpperCase();
+
+	    if (staticFilePath.equals(path)) {
+	        throw new IllegalStateException("Path '" + path + "' is already occupied for serving files");
+	    }
+
+	    boolean isWildcard = path.endsWith("*");
+	    boolean isParam = path.contains(":");
+
+	    Map<String, Map<String, RequestHandler>> targetRoutes;
+
+	    if (isWildcard) {
+	        targetRoutes = wildcardRoutes;
+	    } else if (isParam) {
+	        targetRoutes = pathParamRoutes;
+	    } else {
+	        targetRoutes = routes;
+	    }
+
+	    targetRoutes.computeIfAbsent(path, newPath -> {
+	        var servlet = createServlet();
+	        context.addServlet(new ServletHolder(servlet), pathToServletMapping(newPath));
+	        return new HashMap<>();
+	    }).put(method, handler);
+	}
+
+	private String pathToServletMapping(String path) {
+	    if (path.contains(":")) {
+	        // Param routes need to be mapped to a wildcard servlet mapping.
+	        // Jetty requires something like "/api/files/*" instead of "/api/files/:fileid"
+	        // So, replace ":param" parts with "*" or just end with "/*"
+	        // Example: "/api/files/:fileid" => "/api/files/*"
+	        int idx = path.indexOf("/:"); 
+	        if (idx >= 0) {
+	            return path.substring(0, idx) + "/*";
+	        }
+	        return path; // fallback
+	    }
+	    return path;
+	}
+
 
 	public void get(String path, RequestHandler handler) {
 		add("GET", path, handler);

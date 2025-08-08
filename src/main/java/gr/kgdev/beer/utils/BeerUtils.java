@@ -14,6 +14,7 @@ import org.json.JSONObject;
 
 import com.google.gson.Gson;
 
+import gr.kgdev.beer.core.Beer;
 import gr.kgdev.beer.model.Credentials;
 import gr.kgdev.beer.model.exceptions.BadRequestException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -56,6 +57,13 @@ public class BeerUtils {
 		} catch (Exception e) {
 			throw new BadRequestException("Could not parse request's query params");
 		}
+	}
+	
+	public static String getPathParam(HttpServletRequest req, String paramName) {
+		if (paramName.startsWith(":")) {
+			paramName = paramName.substring(1);
+		}
+		return (String) req.getAttribute(Beer.PATH_PREFIX + paramName);
 	}
 	
 	public static Credentials parseBasicAuthCredentials(HttpServletRequest req) throws BadRequestException {
