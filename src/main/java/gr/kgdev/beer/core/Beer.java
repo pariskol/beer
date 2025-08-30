@@ -325,9 +325,9 @@ public class Beer {
 		}
 		
 		if (res.getStatus() == 500) {
-			logger.error(req.getMethod() + " " + req.getRequestURI(), ex);
+			logger.error(req.getMethod() + " " + tag + " " + req.getRequestURI(), ex);
 		} else {
-			logger.error(req.getMethod() + " " + req.getRequestURI() + " " + ex.getMessage());
+			logger.error(req.getMethod() + " " + tag + " " + req.getRequestURI() + " " + ex.getMessage());
 		}
 	}
 
