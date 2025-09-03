@@ -1,6 +1,7 @@
 package gr.kgdev.beer.core;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -308,20 +309,21 @@ public class Beer {
 	private void handleException(HttpServletRequest req, HttpServletResponse res, Throwable ex) throws IOException {
 		res.setContentType("application/json");
 		var tag = UUID.randomUUID().toString();
+		var datetime = LocalDateTime.now().toString();
 
 		if (ex instanceof ForbiddenException) {
 			res.setStatus(403);
-			res.getWriter().write(BeerUtils.json(new SimpleErrorMessage("Forbidden", tag)));
+			res.getWriter().write(BeerUtils.json(new SimpleErrorMessage("Forbidden", tag, datetime)));
 		} else if (ex instanceof UnauthorizedException) {
 			res.setStatus(401);
-			res.getWriter().write(BeerUtils.json(new SimpleErrorMessage("Unauthorized", tag)));
+			res.getWriter().write(BeerUtils.json(new SimpleErrorMessage("Unauthorized", tag, datetime)));
 		} else if (ex instanceof BadRequestException) {
 			res.setStatus(400);
-			res.getWriter().write(BeerUtils.json(new SimpleErrorMessage(ex.getMessage(), tag)));
+			res.getWriter().write(BeerUtils.json(new SimpleErrorMessage(ex.getMessage(), tag, datetime)));
 
 		} else {
 			res.setStatus(500);
-			res.getWriter().write(BeerUtils.json(new SimpleErrorMessage("Ops something went wrong!", tag)));
+			res.getWriter().write(BeerUtils.json(new SimpleErrorMessage("Ops something went wrong!", tag, datetime)));
 		}
 		
 		if (res.getStatus() == 500) {

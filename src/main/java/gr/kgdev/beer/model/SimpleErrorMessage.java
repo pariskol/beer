@@ -1,16 +1,25 @@
 package gr.kgdev.beer.model;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 import org.json.JSONObject;
 
 public class SimpleErrorMessage {
 
 	private String message;
-	private String tag;
-
-	public SimpleErrorMessage(String message, String tag) {
+	private String tag = UUID.randomUUID().toString();
+	private String datetime = LocalDateTime.now().toString();
+	
+	public SimpleErrorMessage(String message) {
 		super();
 		this.message = message;
+	}
+	
+	public SimpleErrorMessage(String message, String tag, String datetime) {
+		this(message);
 		this.tag = tag;
+		this.datetime = datetime;
 	}
 
 	public String getMessage() {
@@ -28,6 +37,15 @@ public class SimpleErrorMessage {
 
 	public void setTag(String tag) {
 		this.tag = tag;
+	}
+	
+
+	public String getDatetime() {
+		return datetime;
+	}
+
+	public void setDatetime(String datetime) {
+		this.datetime = datetime;
 	}
 
 	@Override
