@@ -1,6 +1,6 @@
 package gr.kgdev.beer.model.exceptions;
 
-public class InternalServerErrorException extends Exception {
+public class InternalServerErrorException extends RuntimeException {
 
 	/**
 	 * 
