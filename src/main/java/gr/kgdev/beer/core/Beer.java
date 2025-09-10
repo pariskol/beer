@@ -2,9 +2,12 @@ package gr.kgdev.beer.core;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.server.HttpConnectionFactory;
@@ -19,6 +22,10 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
+import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.server.JettyWebSocketServlet;
+import org.eclipse.jetty.websocket.server.JettyWebSocketServletFactory;
+import org.eclipse.jetty.websocket.server.config.JettyWebSocketServletContainerInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +53,7 @@ public class Beer {
 	private final Map<String, Map<String, RequestHandler>> routes = new HashMap<>();
 	private final Map<String, Map<String, RequestHandler>> wildcardRoutes = new HashMap<>();
 	private final Map<String, Map<String, RequestHandler>> pathParamRoutes = new HashMap<>();
+	private final Map<String, List<Session>> socketSessionsRoutesMap = new HashMap<>();
 	private final HandlerList handlers = new HandlerList();
 	private BeerConfig config;
 	private String staticFilePath;
@@ -89,8 +97,36 @@ public class Beer {
 		server.addConnector(connector);
 		this.context = new ServletContextHandler(ServletContextHandler.SESSIONS);
 		context.setContextPath("/");
+		
+	    JettyWebSocketServletContainerInitializer.configure(context, null);
 
 		handlers.addHandler(context);
+	}
+
+	public void socket(String path) {
+		socket(path, (msg) -> {});
+	}
+	
+	@SuppressWarnings("serial")
+	public void socket(String path, Consumer<Object> onMessage) {
+		var websocketServlet = new JettyWebSocketServlet() {
+			@Override
+			protected void configure(JettyWebSocketServletFactory factory) {
+				factory.addMapping(path,
+						(req, res) -> new BeerSocket(
+								session -> {
+									if (socketSessionsRoutesMap.get(path) == null) {
+										socketSessionsRoutesMap.put(path, new ArrayList<>());
+									}
+									socketSessionsRoutesMap.get(path).add(session);
+								},
+								(session, msg) -> onMessage.accept(msg),
+								session -> {
+									socketSessionsRoutesMap.get(path).remove(session);
+								}));
+			}
+		};
+		context.addServlet(new ServletHolder(websocketServlet), path);
 	}
 
 	public Server getServerInstance() {
@@ -255,6 +291,7 @@ public class Beer {
 		add("DELETE", path, handler);
 	}
 
+    
 	public void filter(String path, FilterHandler handler) {
 		Filter servletFilter = new Filter() {
 			@Override
@@ -399,4 +436,17 @@ public class Beer {
 		server.join();
 	}
 
+    public void broadcast(String path, Object data) {
+    	if (socketSessionsRoutesMap.get(path) != null) {
+	        for (Session session : socketSessionsRoutesMap.get(path)) {
+	            if (session.isOpen()) {
+	                try {
+	                    session.getRemote().sendString(BeerUtils.json(data));
+	                } catch (Exception e) {
+	                    throw new RuntimeException(e);
+	                }
+	            }
+	        }
+    	}
+    }
 }

@@ -76,5 +76,11 @@
 		    <artifactId>jetty-util</artifactId>
 		    <version>${jetty.version}</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.eclipse.jetty.websocket/websocket-jetty-server -->
+		<dependency>
+		    <groupId>org.eclipse.jetty.websocket</groupId>
+		    <artifactId>websocket-jetty-server</artifactId>
+		    <version>${jetty.version}</version>
+		</dependency>
 	</dependencies>
 </project>
