@@ -41,6 +41,8 @@ git checkout master
 git merge "$version"
 git push origin master
 
+mvn clean install
+
 # switch back to development
 git checkout development
 mvn clean install
