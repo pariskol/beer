@@ -1,4 +1,6 @@
-# 🍺 Beer
+<p align="center">
+<img src="beer-logo.png" alt="Logo" width="300"/>
+</p>
 
 **Beer** is a lightweight Java library that makes it simple to build RESTful web applications using Jetty and Servlets — without the boilerplate. Just pour your routes, filters, static files, and you’re ready to serve!
 
