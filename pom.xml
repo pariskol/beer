@@ -6,7 +6,37 @@
   <artifactId>beer</artifactId>
   <version>1.0.1-SNAPSHOT</version>
   <name>Beer</name>
+  <description>A lightweight web framework built on top of sevlets with embedded jetty.</description>
+  <url>https://github.com/pariskol/beer</url>
   
+  
+	<licenses>
+		<license>
+	    	<name>MIT License</name>
+	     	<url>https://raw.githubusercontent.com/pariskol/beer/refs/heads/master/LICENSE</url>
+		</license>
+	</licenses>
+  
+    <developers>
+	    <developer>
+	     	<id>pariskol</id>
+	      	<name>Paris Kolovos</name>
+	    	<url>https://github.com/pariskol</url>
+    	</developer>
+  	</developers>
+  	<scm>
+    	<connection>scm:git:git://github.com/pariskol/beer.git</connection>
+    	<developerConnection>scm:git:ssh://github.com/pariskol/beer.git</developerConnection>
+    	<url>https://github.com/pariskol/beer</url>
+    </scm>
+  
+  	<distributionManagement>
+		<repository>
+	    	<id>github-pariskol-beer</id>
+	    	<name>maven beer</name>
+	    	<url>https://maven.pkg.github.com/pariskol/beer</url>
+		</repository>
+	</distributionManagement>
   	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>21</maven.compiler.source>
