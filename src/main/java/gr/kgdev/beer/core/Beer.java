@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
@@ -325,7 +326,7 @@ public class Beer {
 				try {
 					chain.doFilter(req, res);
 				} catch (ServletException ex) {
-					handleException((HttpServletRequest) req, (HttpServletResponse) res, ex.getRootCause());
+					handleException((HttpServletRequest) req, (HttpServletResponse) res, ExceptionUtils.getRootCause(ex));
 				} catch (Throwable ex) {
 					handleException((HttpServletRequest) req, (HttpServletResponse) res, ex);
 				}
