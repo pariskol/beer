@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>gr.kgdev</groupId>
   <artifactId>beer</artifactId>
-  <version>1.0.1-SNAPSHOT</version>
+  <version>1.0.1</version>
   <name>Beer</name>
   <description>A lightweight web framework built on top of sevlets with embedded jetty.</description>
   <url>https://github.com/pariskol/beer</url>
