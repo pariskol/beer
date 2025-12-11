@@ -2,11 +2,12 @@ package gr.kgdev.beer.core;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -54,7 +55,7 @@ public class Beer {
 	private final Map<String, Map<String, RequestHandler>> routes = new HashMap<>();
 	private final Map<String, Map<String, RequestHandler>> wildcardRoutes = new HashMap<>();
 	private final Map<String, Map<String, RequestHandler>> pathParamRoutes = new HashMap<>();
-	private final Map<String, List<Session>> socketSessionsRoutesMap = new HashMap<>();
+	private final Map<String, List<Session>> socketSessionsRoutesMap = new ConcurrentHashMap<>();
 	private final HandlerList handlers = new HandlerList();
 	private BeerConfig config;
 	private String staticFilePath;
@@ -117,7 +118,7 @@ public class Beer {
 						(req, res) -> new BeerSocket(
 								session -> {
 									if (socketSessionsRoutesMap.get(path) == null) {
-										socketSessionsRoutesMap.put(path, new ArrayList<>());
+										socketSessionsRoutesMap.put(path, new CopyOnWriteArrayList<>());
 									}
 									socketSessionsRoutesMap.get(path).add(session);
 								},
@@ -437,17 +438,22 @@ public class Beer {
 		server.join();
 	}
 
-    public void broadcast(String path, Object data) {
-    	if (socketSessionsRoutesMap.get(path) != null) {
-	        for (Session session : socketSessionsRoutesMap.get(path)) {
-	            if (session.isOpen()) {
-	                try {
-	                    session.getRemote().sendString(BeerUtils.json(data));
-	                } catch (Exception e) {
-	                    throw new RuntimeException(e);
-	                }
-	            }
-	        }
-    	}
+	public Map<String, List<Session>> getSocketSessionsRoutesMap() {
+        return socketSessionsRoutesMap;
     }
+
+	public void broadcast(String path, Object data) {
+		var sessions = socketSessionsRoutesMap.get(path);
+		if (sessions != null) {
+			sessions.removeIf(session -> session == null || !session.isOpen());
+			for (Session session : sessions) {
+				try {
+					session.getRemote().sendString(BeerUtils.json(data));
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			}
+		}
+	}
+
 }
