@@ -104,7 +104,7 @@ public class BeerFileUtils {
             }
         }
         
-        return "";
+        return null;
 	}
 
 }
