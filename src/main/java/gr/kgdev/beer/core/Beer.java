@@ -177,7 +177,10 @@ public class Beer {
 						try {
 							var result = registeredHandler.handle(req, res);
 							res.setStatus(200);
-							res.getWriter().write(BeerUtils.json(result));
+							if (result != null) {
+								var payload = result instanceof String ? (String) result : BeerUtils.json(result);
+								res.getWriter().write(payload);
+							}
 							return;
 						} catch (Throwable e) {
 							throw new ServletException(e);
