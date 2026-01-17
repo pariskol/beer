@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import gr.kgdev.beer.model.SimpleMessage;
 import jakarta.servlet.MultipartConfigElement;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.Part;
@@ -86,23 +87,25 @@ public class BeerFileUtils {
 	}
 	
 	private static String downloadFile(HttpServletResponse res, File file, boolean makeInlineFiles) throws IOException {
-		res.setContentType("application/octet-stream");
-		res.setHeader("Content-Disposition",
-				makeInlineFiles ? "inline" : "attachment" + 
-				"; filename=" + file.getName());
-		
-		if (makeInlineFiles) {
-			res.setHeader("Content-Type", "image/png or image/jpeg or application/pdf");
-		}
-		
-        try(var bufferedInputStream = new BufferedInputStream(new FileInputStream(file));)
-        {
-            var buffer = new byte[32768];
-            int len;
-            while ((len = bufferedInputStream.read(buffer)) > 0) {
-            	res.getOutputStream().write(buffer,0,len);
-            }
-        }
+	    String contentType = Files.probeContentType(file.toPath());
+	    res.setContentType(contentType != null ? contentType : "application/octet-stream");
+
+	    res.setHeader(
+	        "Content-Disposition",
+	        (makeInlineFiles ? "inline" : "attachment") +
+	        "; filename=\"" + file.getName() + "\""
+	    );
+
+	    try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
+	         ServletOutputStream out = res.getOutputStream()) {
+
+	        byte[] buffer = new byte[32768];
+	        int len;
+	        while ((len = in.read(buffer)) != -1) {
+	            out.write(buffer, 0, len);
+	        }
+	        out.flush();
+	    }
         
         return null;
 	}
