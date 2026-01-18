@@ -47,6 +47,18 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+/**
+ * Root entry point and core engine of the Beer web framework.
+ * <p>
+ * {@code Beer} is a lightweight HTTP and WebSocket server built on top of Jetty
+ * using servlets, providing a minimal yet expressive API for defining routes,
+ * middleware filters, static file serving, and real-time WebSocket endpoints.
+ *
+ * <p>
+ * Internally, {@code Beer} dynamically creates and registers Jetty servlets
+ * per route group and resolves requests in a deterministic order:
+ * exact routes, wildcard routes, and parameterized routes.
+ */
 public class Beer {
 
 	public static final String PATH_PREFIX = "path:";
@@ -61,6 +73,12 @@ public class Beer {
 	private String staticFilePath;
 	private Logger logger = LoggerFactory.getLogger(Beer.class);
 
+	/**
+	 * Initializes the Beer server with the provided configuration.
+	 * Sets up thread pool, connectors, context, and handlers.
+	 *
+	 * @param config the BeerConfig instance containing server settings
+	 */
 	public void init(BeerConfig config) {
 		var threadPool = new QueuedThreadPool(config.getJettyMaxThreads(), config.getJettyMinThreads(),
 				config.getJettyIdleTimeout());
@@ -105,10 +123,22 @@ public class Beer {
 		handlers.addHandler(context);
 	}
 
+	/**
+     * Registers a WebSocket endpoint at the given path.
+     *
+     * @param path the WebSocket route path
+     */
 	public void socket(String path) {
 		socket(path, (msg) -> {});
 	}
 	
+
+	/**
+     * Registers a WebSocket endpoint at the given path with a message handler.
+     *
+     * @param path the WebSocket route path
+     * @param onMessage consumer for incoming messages
+     */
 	@SuppressWarnings("serial")
 	public void socket(String path, Consumer<Object> onMessage) {
 		var websocketServlet = new JettyWebSocketServlet() {
@@ -131,10 +161,42 @@ public class Beer {
 		context.addServlet(new ServletHolder(websocketServlet), path);
 	}
 
+	/**
+     * Returns the underlying Jetty Server instance.
+     *
+     * @return the Jetty Server
+     */
 	public Server getServerInstance() {
 		return server;
 	}
 
+	/**
+	 * Creates and returns a dynamically configured {@link HttpServlet}
+	 * responsible for routing incoming HTTP requests to registered handlers.
+	 * <p>
+	 * The servlet resolves requests using the following matching strategy
+	 * (in order of precedence):
+	 * <ol>
+	 *   <li><b>Exact path match</b> (e.g. {@code /api/users})</li>
+	 *   <li><b>Wildcard match</b> (e.g. {@code /api/files/*})</li>
+	 *   <li><b>Path parameter match</b> (e.g. {@code /api/files/:fileId})</li>
+	 * </ol>
+	 *
+	 * <p>
+	 * Once a route is matched, the HTTP method (GET, POST, etc.) is used to
+	 * locate the appropriate {@link RequestHandler}. If found, the handler
+	 * is executed and its return value is written as a JSON response.
+	 *
+	 * <p>
+	 * Response behavior:
+	 * <ul>
+	 *   <li>{@code 200 OK} – handler executed successfully</li>
+	 *   <li>{@code 404 Not Found} – no matching route</li>
+	 *   <li>{@code 405 Method Not Allowed} – route exists but method is unsupported</li>
+	 * </ul>
+	 *
+	 * @return a fully configured {@link HttpServlet} instance
+	 */
 	private HttpServlet createServlet() {
 		@SuppressWarnings("serial")
 		var servlet = new HttpServlet() {
@@ -199,6 +261,29 @@ public class Beer {
 		return servlet;
 	}
 
+	/**
+	 * Extracts path parameter values from the request URI and stores them
+	 * as request attributes.
+	 * <p>
+	 * Path parameters are identified by segments in the route pattern
+	 * prefixed with {@code ':'}. Each extracted value is stored in the
+	 * request using a predefined prefix.
+	 *
+	 * <p>
+	 * Example:
+	 * <pre>{@code
+	 * Pattern: /api/files/:fileId
+	 * URI:     /api/files/123
+	 * Result:  request attribute "path.fileId" = "123"
+	 * }</pre>
+	 *
+	 * <p>
+	 * If the pattern and request URI segment counts do not match,
+	 * no attributes are extracted.
+	 *
+	 * @param pattern the registered route pattern containing path parameters
+	 * @param req the {@link HttpServletRequest} to store extracted values in
+	 */
 	private void setAttributesForPathParams(String pattern, HttpServletRequest req) {
 		var patternParts = pattern.split("/");
 		var uriParts = req.getRequestURI().split("/");
@@ -217,6 +302,25 @@ public class Beer {
 		}
 	}
 	
+	/**
+	 * Determines whether a request URI matches a parameterized route pattern.
+	 * <p>
+	 * Static path segments must match exactly, while segments prefixed
+	 * with {@code ':'} are treated as wildcards that match any value.
+	 *
+	 * <p>
+	 * Example:
+	 * <pre>{@code
+	 * Pattern: /api/files/:fileId
+	 * URI:     /api/files/123     -> true
+	 * URI:     /api/files/abc     -> true
+	 * URI:     /api/users/123     -> false
+	 * }</pre>
+	 *
+	 * @param pattern the route pattern containing optional path parameters
+	 * @param uri the incoming request URI
+	 * @return {@code true} if the URI matches the pattern; {@code false} otherwise
+	 */
 	private boolean matchesParamPattern(String pattern, String uri) {
 		var patternParts = pattern.split("/");
 		var uriParts = uri.split("/");
@@ -237,6 +341,29 @@ public class Beer {
 		return true;
 	}
 
+	/**
+	 * Registers a request handler for a given HTTP method and path.
+	 * <p>
+	 * The path is categorized into one of three routing types:
+	 * <ul>
+	 *   <li><b>Exact routes</b> – static paths with no parameters</li>
+	 *   <li><b>Wildcard routes</b> – paths ending with {@code *}</li>
+	 *   <li><b>Parameterized routes</b> – paths containing {@code :param}</li>
+	 * </ul>
+	 *
+	 * <p>
+	 * When a new path is encountered, a servlet is created and registered
+	 * with the servlet context using a servlet-compatible mapping.
+	 *
+	 * <p>
+	 * Attempting to register a handler on a path reserved for static
+	 * file serving will result in an exception.
+	 *
+	 * @param method the HTTP method (GET, POST, PUT, DELETE, etc.)
+	 * @param path the route path
+	 * @param handler the {@link RequestHandler} responsible for processing requests
+	 * @throws IllegalStateException if the path conflicts with static file handling
+	 */
 	private void add(String method, String path, RequestHandler handler) {
 	    method = method.toUpperCase();
 
@@ -264,12 +391,27 @@ public class Beer {
 	    }).put(method, handler);
 	}
 
+	/**
+	 * Converts a route-style path definition into a servlet-compatible mapping.
+	 * <p>
+	 * This method is primarily used to adapt parameterized routes (e.g. {@code :id})
+	 * into wildcard servlet mappings required by Jetty.
+	 * <p>
+	 * Jetty does not support named path parameters such as {@code :fileId} directly
+	 * in servlet mappings. Instead, routes containing parameters must be registered
+	 * using a wildcard suffix ({@code /*}).
+	 * <p>
+	 * Example:
+	 * <pre>{@code
+	 * "/api/files/:fileId" -> "/api/files/*"
+	 * }</pre>
+	 *
+	 * @param path the original route path, possibly containing parameter segments
+	 *             prefixed with {@code ':'}
+	 * @return a servlet-compatible mapping string suitable for Jetty
+	 */
 	private String pathToServletMapping(String path) {
 	    if (path.contains(":")) {
-	        // Param routes need to be mapped to a wildcard servlet mapping.
-	        // Jetty requires something like "/api/files/*" instead of "/api/files/:fileid"
-	        // So, replace ":param" parts with "*" or just end with "/*"
-	        // Example: "/api/files/:fileid" => "/api/files/*"
 	        int idx = path.indexOf("/:"); 
 	        if (idx >= 0) {
 	            return path.substring(0, idx) + "/*";
@@ -279,24 +421,52 @@ public class Beer {
 	    return path;
 	}
 
-
+	/**
+     * Registers a GET route handler.
+     *
+     * @param path the route path
+     * @param handler the request handler
+     */
 	public void get(String path, RequestHandler handler) {
 		add("GET", path, handler);
 	}
 
+	/**
+     * Registers a POST route handler.
+     *
+     * @param path the route path
+     * @param handler the request handler
+     */
 	public void post(String path, RequestHandler handler) {
 		add("POST", path, handler);
 	}
 
+	/**
+     * Registers a PUT route handler.
+     *
+     * @param path the route path
+     * @param handler the request handler
+     */
 	public void put(String path, RequestHandler handler) {
 		add("PUT", path, handler);
 	}
 
+	/**
+     * Registers a DELETE route handler.
+     *
+     * @param path the route path
+     * @param handler the request handler
+     */
 	public void delete(String path, RequestHandler handler) {
 		add("DELETE", path, handler);
 	}
 
-    
+	 /**
+     * Registers a filter that runs before route for the specified path.
+     *
+     * @param path the filter path
+     * @param handler the filter handler
+     */
 	public void filter(String path, FilterHandler handler) {
 		Filter servletFilter = new Filter() {
 			@Override
@@ -322,6 +492,19 @@ public class Beer {
 		context.addFilter(new FilterHolder(servletFilter), path, null);
 	}
 
+	/**
+	 * Registers a global exception filter to handle uncaught exceptions.
+	 * <p>
+	 * Handles internal exception classes and maps them to HTTP status codes:
+	 * <ul>
+	 *   <li>{@code BadRequestException} (400)</li>
+	 *   <li>{@code ForbiddenException} (403)</li>
+	 *   <li>{@code UnauthorizedException} (401)</li>
+	 *   <li>{@code InternalServerErrorException} (500)</li>
+	 *   <li>Other exceptions (500)</li>
+	 * </ul>
+	 * Always returns a JSON response of {@link gr.kgdev.beer.model.SimpleErrorMessage}.
+	 */
 	public void exceptionFilter() {
 		Filter servletFilter = new Filter() {
 			@Override
@@ -375,6 +558,12 @@ public class Beer {
 		}
 	}
 
+	/**
+     * Serves static files from the specified classpath location (within the jar) at the given path.
+     *
+     * @param path the route path for static files
+     * @param filePathInClasspath the classpath location of static files
+     */
 	public void staticFiles(String path, String filePathInClasspath) {
 		if (routes.containsKey(path)) {
 			throw new IllegalStateException("Path provided to map files is alreday occupied by another route");
@@ -389,6 +578,9 @@ public class Beer {
 		staticFilePath = path;
 	}
 
+	/**
+     * Registers a CORS filter that allows all origins and common HTTP methods.
+     */
 	public void corsAllFilter() {
 		Filter servletFilter = new Filter() {
 			@Override
@@ -424,12 +616,20 @@ public class Beer {
 		context.addFilter(new FilterHolder(servletFilter), "/*", null);
 	}
 
+	 /**
+     * Registers default logging filter for all requests.
+     */
 	public void loggingFilter() {
 		filter("/*", (req, res) -> {
 			logger.info("[LOG] " + req.getMethod() + " " + req.getRequestURI());
 		});
 	}
 
+	/**
+     * Starts the Beer server. Blocks until the server is stopped.
+     *
+     * @throws Exception if the server fails to start
+     */
 	public void start() throws Exception {
 		if (config == null) {
 			throw new IllegalStateException("Beer is not configured! Call init() method first!");
@@ -441,10 +641,21 @@ public class Beer {
 		server.join();
 	}
 
+	/**
+     * Returns the map of WebSocket sessions for each route.
+     *
+     * @return map of route paths to session lists
+     */
 	public Map<String, List<Session>> getSocketSessionsRoutesMap() {
         return socketSessionsRoutesMap;
     }
 
+	 /**
+     * Broadcasts a message to all WebSocket sessions registered at the given path.
+     *
+     * @param path the WebSocket route path
+     * @param data the message data to broadcast
+     */
 	public void broadcast(String path, Object data) {
 		var sessions = socketSessionsRoutesMap.get(path);
 		if (sessions != null) {

@@ -19,12 +19,42 @@ import com.nimbusds.jwt.SignedJWT;
 
 import gr.kgdev.beer.model.exceptions.UnauthorizedException;
 
+/**
+ * Utility class providing helper methods for authentication-related operations,
+ * including JWT generation, verification, and secret key creation.
+ * <p>
+ * This class uses HMAC SHA-256 (HS256) for signing and verifying JWT tokens.
+ * All methods are stateless and thread-safe.
+ */
 public class BeerAuthUtils {
 
+	/**
+     * Generates a random secret key suitable for signing JWT tokens.
+     * <p>
+     * The secret key is created by generating a random UUID and hashing it
+     * using SHA-256, producing a hexadecimal string.
+     *
+     * @return a randomly generated SHA-256 hexadecimal secret key
+     */
 	public static String generateRandomSecretKey() {
 		return DigestUtils.sha256Hex(UUID.randomUUID().toString());
 	}
 	
+	/**
+     * Generates a signed JWT token for a given user.
+     * <p>
+     * The token uses the HS256 algorithm and includes:
+     * <ul>
+     *   <li>{@code sub} (subject) claim set to the provided user ID</li>
+     *   <li>{@code exp} (expiration) claim based on the provided expiration time</li>
+     * </ul>
+     *
+     * @param secretKey the secret key used to sign the JWT
+     * @param expirationMinutes the token expiration time in minutes from now
+     * @param userId the user identifier to set as the JWT subject
+     * @return the serialized JWT token as a {@link String}
+     * @throws RuntimeException if token signing fails (should not normally occur)
+     */
 	public static String generateJwt(String secretKey, Integer expirationMinutes, String userId) {
 		var now = Instant.now();
 
@@ -51,6 +81,22 @@ public class BeerAuthUtils {
         }
 	}
 	
+	/**
+     * Verifies a JWT token and returns its claims if valid.
+     * <p>
+     * This method performs the following checks:
+     * <ul>
+     *   <li>Verifies the token signature using the provided secret key</li>
+     *   <li>Checks whether the token has expired</li>
+     * </ul>
+     *
+     * @param secretKey the secret key used to verify the JWT signature
+     * @param jwtToken the serialized JWT token to verify
+     * @return the {@link JWTClaimsSet} extracted from the verified token
+     * @throws UnauthorizedException if the token signature is invalid or the token is expired
+     * @throws ParseException if the JWT token cannot be parsed
+     * @throws JOSEException if a cryptographic verification error occurs
+     */
 	public static JWTClaimsSet verifyJwt(String secretKey, String jwtToken) throws UnauthorizedException, ParseException, JOSEException {
         var signedJWT = SignedJWT.parse(jwtToken);
         var verifier = new MACVerifier(secretKey);
