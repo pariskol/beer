@@ -1,6 +1,7 @@
 package gr.kgdev.beer.core;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -144,6 +145,7 @@ public class Beer {
 		var websocketServlet = new JettyWebSocketServlet() {
 			@Override
 			protected void configure(JettyWebSocketServletFactory factory) {
+			    factory.setIdleTimeout(Duration.ZERO); // No timeout
 				factory.addMapping(path,
 						(req, res) -> new BeerSocket(
 								session -> {
