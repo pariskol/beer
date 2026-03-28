@@ -1,13 +1,16 @@
 
 package gr.kgdev.beer.core;
 
-import org.eclipse.jetty.websocket.api.annotations.WebSocket;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
-import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
 
 import java.util.function.Consumer;
+
+import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
+import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
+import org.eclipse.jetty.websocket.api.annotations.OnWebSocketOpen;
+import org.eclipse.jetty.websocket.api.annotations.WebSocket;
+
+
 import java.util.function.BiConsumer;
 
 /**
@@ -43,7 +46,7 @@ public class BeerSocket {
 	 *
 	 * @param session the WebSocket session
 	 */
-	@OnWebSocketConnect
+	@OnWebSocketOpen
 	public void handleConnect(Session session) {
 		if (onConnect != null)
 			onConnect.accept(session);

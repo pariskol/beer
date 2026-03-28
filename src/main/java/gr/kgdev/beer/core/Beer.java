@@ -12,23 +12,23 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.eclipse.jetty.ee11.servlet.DefaultServlet;
+import org.eclipse.jetty.ee11.servlet.FilterHolder;
+import org.eclipse.jetty.ee11.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee11.servlet.ServletHolder;
+import org.eclipse.jetty.ee11.websocket.server.JettyWebSocketServlet;
+import org.eclipse.jetty.ee11.websocket.server.JettyWebSocketServletFactory;
+import org.eclipse.jetty.ee11.websocket.server.config.JettyWebSocketServletContainerInitializer;
 import org.eclipse.jetty.http.HttpVersion;
+import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
-import org.eclipse.jetty.server.handler.HandlerList;
-import org.eclipse.jetty.servlet.DefaultServlet;
-import org.eclipse.jetty.servlet.FilterHolder;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
-import org.eclipse.jetty.util.resource.Resource;
+import org.eclipse.jetty.util.resource.ResourceFactory;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.server.JettyWebSocketServlet;
-import org.eclipse.jetty.websocket.server.JettyWebSocketServletFactory;
-import org.eclipse.jetty.websocket.server.config.JettyWebSocketServletContainerInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +47,7 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 
 /**
  * Root entry point and core engine of the Beer web framework.
@@ -69,9 +70,9 @@ public class Beer {
 	private final Map<String, Map<String, RequestHandler>> wildcardRoutes = new HashMap<>();
 	private final Map<String, Map<String, RequestHandler>> pathParamRoutes = new HashMap<>();
 	private final Map<String, List<Session>> socketSessionsRoutesMap = new ConcurrentHashMap<>();
-	private final HandlerList handlers = new HandlerList();
+	private final Handler.Sequence handlers = new Handler.Sequence();
 	private BeerConfig config;
-	private String staticFilePath;
+	private String staticFilePath = "";
 	private Logger logger = LoggerFactory.getLogger(Beer.class);
 
 	/**
@@ -119,7 +120,7 @@ public class Beer {
 		this.context = new ServletContextHandler(ServletContextHandler.SESSIONS);
 		context.setContextPath("/");
 		
-	    JettyWebSocketServletContainerInitializer.configure(context, null);
+		 JettyWebSocketServletContainerInitializer.configure(context, null);
 
 		handlers.addHandler(context);
 	}
@@ -129,6 +130,7 @@ public class Beer {
      *
      * @param path the WebSocket route path
      */
+	@SuppressWarnings("unused")
 	public void socket(String path) {
 		socket(path, (msg) -> {});
 	}
@@ -143,9 +145,11 @@ public class Beer {
 	@SuppressWarnings("serial")
 	public void socket(String path, Consumer<Object> onMessage) {
 		var websocketServlet = new JettyWebSocketServlet() {
+			@SuppressWarnings("unused")
 			@Override
 			protected void configure(JettyWebSocketServletFactory factory) {
 			    factory.setIdleTimeout(Duration.ZERO); // No timeout
+			    factory.setMaxTextMessageSize(1048576); // 1 mb
 				factory.addMapping(path,
 						(req, res) -> new BeerSocket(
 								session -> {
@@ -162,6 +166,7 @@ public class Beer {
 		};
 		context.addServlet(new ServletHolder(websocketServlet), path);
 	}
+
 
 	/**
      * Returns the underlying Jetty Server instance.
@@ -573,7 +578,18 @@ public class Beer {
 		
 		routes.put(path, null);
 		
-		context.setBaseResource(Resource.newClassPathResource(filePathInClasspath));
+
+		// Assuming filePathInClasspath points to a folder inside your JAR, e.g., "static"
+		var resourceUrl = ClassLoader.getSystemClassLoader().getResource(filePathInClasspath);
+		if (resourceUrl == null) {
+		    throw new IllegalArgumentException("Classpath resource not found: " + filePathInClasspath);
+		}
+
+		var resourceFactory = ResourceFactory.of(context);
+
+		context.setBaseResource(
+		        resourceFactory.newClassLoaderResource(filePathInClasspath)
+		);
 		context.addServlet(new ServletHolder(new DefaultServlet()), path);
 		context.setWelcomeFiles(new String[]{"index.html"});
 		
@@ -621,6 +637,7 @@ public class Beer {
 	 /**
      * Registers default logging filter for all requests.
      */
+	@SuppressWarnings("unused")
 	public void loggingFilter() {
 		filter("/*", (req, res) -> {
 			logger.info("[LOG] " + req.getMethod() + " " + req.getRequestURI());
@@ -664,7 +681,7 @@ public class Beer {
 			sessions.removeIf(session -> session == null || !session.isOpen());
 			for (Session session : sessions) {
 				try {
-					session.getRemote().sendString(BeerUtils.json(data));
+					session.sendText(BeerUtils.json(data), null);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}

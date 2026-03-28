@@ -39,9 +39,9 @@
 	</distributionManagement>
   	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<maven.compiler.source>21</maven.compiler.source>
-		<maven.compiler.target>21</maven.compiler.target>
-		<jetty.version>11.0.25</jetty.version>
+		<maven.compiler.source>25</maven.compiler.source>
+		<maven.compiler.target>25</maven.compiler.target>
+		<jetty.version>12.1.7</jetty.version>
 	</properties>
 	
 	<dependencies>
@@ -55,60 +55,61 @@
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
-			<version>2.13.1</version>
+			<version>2.13.2</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.json/json -->
 		<dependency>
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
-			<version>20250517</version>
+			<version>20251224</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
-			<version>3.17.0</version>
+			<version>3.20.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/commons-io/commons-io -->
 		<dependency>
 		    <groupId>commons-io</groupId>
 		    <artifactId>commons-io</artifactId>
-		    <version>2.19.0</version>
+		    <version>2.21.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/commons-codec/commons-codec -->
 		<dependency>
 			<groupId>commons-codec</groupId>
 			<artifactId>commons-codec</artifactId>
-			<version>1.18.0</version>
+			<version>1.21.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.nimbusds/nimbus-jose-jwt -->
 		<dependency>
 			<groupId>com.nimbusds</groupId>
 			<artifactId>nimbus-jose-jwt</artifactId>
-			<version>10.3.1</version>
+			<version>10.8</version>
 		</dependency>
+		<!-- JETTY -->
 		<!-- https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-server -->
 		<dependency>
 		    <groupId>org.eclipse.jetty</groupId>
 		    <artifactId>jetty-server</artifactId>
 		    <version>${jetty.version}</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-servlet -->
+		<!-- https://mvnrepository.com/artifact/org.eclipse.jetty.ee11/jetty-ee11-servlet -->
 		<dependency>
-		    <groupId>org.eclipse.jetty</groupId>
-		    <artifactId>jetty-servlet</artifactId>
+		    <groupId>org.eclipse.jetty.ee11</groupId>
+		    <artifactId>jetty-ee11-servlet</artifactId>
 		    <version>${jetty.version}</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-util -->
+		<!-- https://mvnrepository.com/artifact/org.eclipse.jetty.ee11.websocket/jetty-ee11-websocket-jetty-server -->
 		<dependency>
-		    <groupId>org.eclipse.jetty</groupId>
-		    <artifactId>jetty-util</artifactId>
+		    <groupId>org.eclipse.jetty.ee11.websocket</groupId>
+		    <artifactId>jetty-ee11-websocket-jetty-server</artifactId>
 		    <version>${jetty.version}</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.eclipse.jetty.websocket/websocket-jetty-server -->
+		<!-- https://mvnrepository.com/artifact/org.eclipse.jetty.ee11.websocket/jetty-ee11-websocket-servlet -->
 		<dependency>
-		    <groupId>org.eclipse.jetty.websocket</groupId>
-		    <artifactId>websocket-jetty-server</artifactId>
+		    <groupId>org.eclipse.jetty.ee11.websocket</groupId>
+		    <artifactId>jetty-ee11-websocket-servlet</artifactId>
 		    <version>${jetty.version}</version>
 		</dependency>
 	</dependencies>

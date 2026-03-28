@@ -23,7 +23,7 @@ public class BeerSocketUtils {
      */
 	public static void send(Session session, Object object) {
         try {
-            session.getRemote().sendString(BeerUtils.json(object));
+			session.sendText(BeerUtils.json(object), null);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
