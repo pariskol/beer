@@ -1,6 +1,9 @@
 package gr.kgdev.beer.core;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.Writer;
+import java.nio.charset.Charset;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -22,9 +25,11 @@ import org.eclipse.jetty.ee11.websocket.server.config.JettyWebSocketServletConta
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.HttpConnectionFactory;
+import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
+import org.eclipse.jetty.server.handler.ErrorHandler;
 import org.eclipse.jetty.util.resource.ResourceFactory;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
@@ -520,7 +525,9 @@ public class Beer {
 				try {
 					chain.doFilter(req, res);
 				} catch (ServletException ex) {
-					handleException((HttpServletRequest) req, (HttpServletResponse) res, ExceptionUtils.getRootCause(ex));
+					var rootEx = ExceptionUtils.getRootCause(ex);
+					var exToHandle = rootEx != null ? rootEx : ex;
+					handleException((HttpServletRequest) req, (HttpServletResponse) res, exToHandle);
 				} catch (Throwable ex) {
 					handleException((HttpServletRequest) req, (HttpServletResponse) res, ex);
 				}
@@ -655,6 +662,7 @@ public class Beer {
 		}
 		
 		server.setHandler(handlers);
+		server.setErrorHandler(new JettyErrorHandler());
 		server.start();
 		logger.info("Server started on http://" + config.getIp() + ":" + config.getPort());
 		server.join();
@@ -689,4 +697,21 @@ public class Beer {
 		}
 	}
 
+	public class JettyErrorHandler extends ErrorHandler {
+		@Override
+		protected void writeErrorHtml(Request request, Writer writer, Charset charset, int code, String message,
+				Throwable cause) throws IOException {
+	        if (code == 404) {
+	            writer.write("<h1>Route not found</h1>");
+	            return;
+	        }
+	        
+	        if (code >= 500) {
+	            writer.write("<h1>Internal server error</h1>");
+	            return;
+	        }
+
+	        super.writeErrorHtml(request, writer, charset, code, message, cause);
+		}
+	}
 }
