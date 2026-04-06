@@ -1,7 +1,6 @@
 package gr.kgdev.beer.core;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.time.Duration;
