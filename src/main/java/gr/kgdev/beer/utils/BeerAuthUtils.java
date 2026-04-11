@@ -4,6 +4,7 @@ import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.codec.digest.DigestUtils;
@@ -56,12 +57,18 @@ public class BeerAuthUtils {
      * @throws RuntimeException if token signing fails (should not normally occur)
      */
 	public static String generateJwt(String secretKey, Integer expirationMinutes, String userId) {
+		return generateJwtWithClaims(secretKey, expirationMinutes, userId, Map.of());
+	}
+	
+	public static String generateJwtWithClaims(String secretKey, Integer expirationMinutes, String userId, Map<String, Object> claims) {
 		var now = Instant.now();
 
-		var jwtClaims = new JWTClaimsSet.Builder()
-				.subject(userId) // optional
-				.expirationTime(Date.from(now.plus(expirationMinutes, ChronoUnit.MINUTES))) // set expiration time to 1
-				.build();
+		var jwtBuilder = new JWTClaimsSet.Builder()
+				.subject(userId)
+				.claim(secretKey, userId)
+				.expirationTime(Date.from(now.plus(expirationMinutes, ChronoUnit.MINUTES))); // set expiration time to 1
+		claims.entrySet().forEach(entry -> jwtBuilder.claim(entry.getKey(), entry.getValue()));
+		var jwtClaims = jwtBuilder.build();
 
         var header = new JWSHeader.Builder(JWSAlgorithm.HS256)
                 .type(JOSEObjectType.JWT)
