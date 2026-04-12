@@ -7,6 +7,8 @@ import com.google.gson.Gson;
 
 public class SimpleErrorMessage {
 
+	private static final Gson GSON = new Gson();
+
 	private String message;
 	private String tag = UUID.randomUUID().toString();
 	private String datetime = LocalDateTime.now().toString();
@@ -50,7 +52,7 @@ public class SimpleErrorMessage {
 
 	@Override
 	public String toString() {
-		return new Gson().toJson(this);
+		return GSON.toJson(this);
 	}
 
 }

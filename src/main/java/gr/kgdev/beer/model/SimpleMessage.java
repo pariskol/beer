@@ -4,6 +4,8 @@ import com.google.gson.Gson;
 
 public class SimpleMessage {
 
+	private static final Gson GSON = new Gson();
+	
 	private String message;
 
 	public SimpleMessage(String message) {
@@ -21,7 +23,7 @@ public class SimpleMessage {
 	
 	@Override
 	public String toString() {
-		return new Gson().toJson(this);
+		return GSON.toJson(this);
 	}
 
 }

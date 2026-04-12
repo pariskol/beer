@@ -3,6 +3,8 @@ package gr.kgdev.beer.model;
 import com.google.gson.Gson;
 
 public class Credentials {
+	private static final Gson GSON = new Gson();
+
 	private String username;
 	private String password;
 
@@ -29,6 +31,6 @@ public class Credentials {
 
 	@Override
 	public String toString() {
-		return new Gson().toJson(this);
+		return GSON.toJson(this);
 	}
 }
