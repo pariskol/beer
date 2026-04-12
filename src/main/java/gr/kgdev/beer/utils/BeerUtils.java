@@ -3,16 +3,13 @@ package gr.kgdev.beer.utils;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Base64;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonParser;
 
 import gr.kgdev.beer.core.Beer;
 import gr.kgdev.beer.model.Credentials;
@@ -94,7 +91,7 @@ public class BeerUtils {
 					queriesMap.put(e.getKey(), value);
 				}
 			});
-			return (T) GSON.fromJson(new JSONObject(queriesMap).toString(), clazz);
+			return (T) GSON.fromJson(GSON.toJson(queriesMap), clazz);
 		} catch (Exception e) {
 			throw new BadRequestException("Could not parse request's query params");
 		}
@@ -207,15 +204,19 @@ public class BeerUtils {
      * @return a JSON-formatted string
      */
 	public static String json(Object object) {
-		if (object instanceof Collection<?>)
-			return new JSONArray((Collection<?>) object).toString();
-		else if (object instanceof Map<?, ?>)
-			return new JSONObject((Map<?,?>) object).toString();
-		else if (object instanceof String) {
-			String str = (String) object;
-			return str.startsWith("{") || str.startsWith("[") ? new JSONObject(str).toString() : str;
-		}
-		else
-			return new JSONObject(object).toString();
+	    if (object instanceof String str) {
+	        str = str.trim();
+	        if (str.startsWith("{") || str.startsWith("[")) {
+	            try {
+	                // validate and normalize json
+	                return GSON.toJson(JsonParser.parseString(str));
+	            } catch (Exception e) {
+	                return str; 
+	            }
+	        }
+	        return str;
+	    }
+	    
+	    return GSON.toJson(object);
 	}
 }

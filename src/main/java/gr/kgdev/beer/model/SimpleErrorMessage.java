@@ -3,7 +3,7 @@ package gr.kgdev.beer.model;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import org.json.JSONObject;
+import com.google.gson.Gson;
 
 public class SimpleErrorMessage {
 
@@ -50,7 +50,7 @@ public class SimpleErrorMessage {
 
 	@Override
 	public String toString() {
-		return new JSONObject(this).toString();
+		return new Gson().toJson(this);
 	}
 
 }

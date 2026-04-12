@@ -1,6 +1,6 @@
 package gr.kgdev.beer.model;
 
-import org.json.JSONObject;
+import com.google.gson.Gson;
 
 public class SimpleMessage {
 
@@ -21,7 +21,7 @@ public class SimpleMessage {
 	
 	@Override
 	public String toString() {
-		return new JSONObject(this).toString();
+		return new Gson().toJson(this);
 	}
 
 }
