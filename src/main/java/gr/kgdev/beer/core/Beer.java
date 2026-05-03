@@ -605,7 +605,7 @@ public class Beer {
 	/**
      * Registers a CORS filter that allows all origins and common HTTP methods.
      */
-	public void corsAllFilter() {
+	public void corsAllFilter(Map<String, String> additionalHeaders) {
 		Filter servletFilter = new Filter() {
 			@Override
 			public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
@@ -615,6 +615,7 @@ public class Beer {
 					httpRes.setHeader("Access-Control-Allow-Origin", "*");
 					httpRes.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
 					httpRes.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+					additionalHeaders.entrySet().forEach(header -> httpRes.setHeader(header.getKey(), header.getValue()));
 					
 					var httpReq = (HttpServletRequest) req;
 					if (httpReq.getMethod().equalsIgnoreCase("options")) {
@@ -640,6 +641,10 @@ public class Beer {
 		context.addFilter(new FilterHolder(servletFilter), "/*", null);
 	}
 
+	public void corsAllFilter() {
+		corsAllFilter(new HashMap<>());
+	}
+	
 	 /**
      * Registers default logging filter for all requests.
      */
