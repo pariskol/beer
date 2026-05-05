@@ -1,8 +1,6 @@
 package gr.kgdev.beer.model.exceptions;
 
-import java.security.GeneralSecurityException;
-
-public class ForbiddenException extends GeneralSecurityException {
+public class ForbiddenException extends RuntimeException {
 
 	/**
 	 * 
