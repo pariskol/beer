@@ -181,6 +181,16 @@ public class Beer {
 		return server;
 	}
 
+	
+	/**
+	 * Returns the ServletContextHandler used for route and filter registration.
+	 *
+	 * @return the ServletContextHandler
+	 */
+	public ServletContextHandler getContext() {
+		return context;
+	}
+
 	/**
 	 * Creates and returns a dynamically configured {@link HttpServlet}
 	 * responsible for routing incoming HTTP requests to registered handlers.
@@ -544,7 +554,7 @@ public class Beer {
 		context.addFilter(new FilterHolder(servletFilter), "/*", null);
 	}
 
-	private void handleException(HttpServletRequest req, HttpServletResponse res, Throwable ex) throws IOException {
+	protected void handleException(HttpServletRequest req, HttpServletResponse res, Throwable ex) throws IOException {
 		res.setContentType("application/json");
 		var tag = UUID.randomUUID().toString();
 		var datetime = LocalDateTime.now().toString();
