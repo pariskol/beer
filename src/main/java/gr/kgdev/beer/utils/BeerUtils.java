@@ -1,7 +1,7 @@
 package gr.kgdev.beer.utils;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
 
@@ -41,7 +41,7 @@ public class BeerUtils {
      */
 	public static String parseReqBody(HttpServletRequest req) throws IOException {
         var bodyAsBytes = IOUtils.toByteArray(req.getInputStream());
-        var body = StringUtils.toEncodedString(bodyAsBytes, Charset.forName(req.getCharacterEncoding()));
+        var body = StringUtils.toEncodedString(bodyAsBytes,  StandardCharsets.UTF_8);
         return body;
 	}
 	
