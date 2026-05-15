@@ -166,7 +166,7 @@ public class BeerFileUtils {
      * @throws IOException if request access fails
      * @throws ServletException if multipart parsing fails
      */
-	private static String getRequestFileName(HttpServletRequest req, String partName) throws UnsupportedEncodingException, IOException, ServletException {
+	public static String getRequestFileName(HttpServletRequest req, String partName) throws UnsupportedEncodingException, IOException, ServletException {
 		return URLDecoder.decode(req.getPart(partName).getSubmittedFileName().replaceAll(" ",""), "UTF-8");
 	}
 	
